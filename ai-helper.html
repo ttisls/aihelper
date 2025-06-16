@@ -1,0 +1,247 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ваш AI-помощник</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f0e6; /* Бежевый фон */
+      color: #2d3436;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 2rem;
+      font-weight: bold;
+      background-color: #dcd3c4;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .chat-container {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .message {
+      padding: 0.8rem 1rem;
+      border-radius: 10px;
+      max-width: 70%;
+      line-height: 1.4;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #a2d99c;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background-color: #dbe5db;
+      color: #2d3436;
+    }
+
+    .doctor-card {
+      background-color: #e9f5db;
+      border: 1px solid #d4edda;
+      padding: 0.7rem;
+      border-radius: 8px;
+      margin-top: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .doctor-name {
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    .doctor-rating {
+      font-size: 0.85rem;
+      color: #27ae60;
+    }
+
+    .doctor-link {
+      display: block;
+      margin-top: 0.3rem;
+      color: #27ae60;
+      text-decoration: underline;
+    }
+
+    form {
+      display: flex;
+      padding: 1rem;
+      background-color: #eae5dd;
+      border-top: 1px solid #ccc;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 20px;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    button {
+      margin-left: 1rem;
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 20px;
+      background-color: #5d9c59;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #4b8848;
+    }
+  </style>
+</head>
+<body>
+
+  <header>Ваш AI-помощник</header>
+
+  <div class="chat-container" id="chat"></div>
+
+  <form id="chat-form">
+    <input type="text" id="user-input" placeholder="Введите сообщение..." autocomplete="off"/>
+    <button type="submit">Отправить</button>
+  </form>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('user-input');
+
+    function addMessage(text, sender) {
+      const msg = document.createElement('div');
+      msg.classList.add('message', sender);
+      msg.textContent = text;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function addDoctors(message, doctors) {
+      addMessage(message, 'bot');
+
+      doctors.forEach(doctor => {
+        const card = document.createElement('div');
+        card.className = 'doctor-card';
+
+        const name = document.createElement('div');
+        name.className = 'doctor-name';
+        name.textContent = doctor.name;
+
+        const rating = document.createElement('div');
+        rating.className = 'doctor-rating';
+        rating.textContent = doctor.rating;
+
+        const link = document.createElement('a');
+        link.href = doctor.link;
+        link.textContent = "Запись на приём";
+        link.className = 'doctor-link';
+        link.target = "_blank";
+
+        card.appendChild(name);
+        card.appendChild(rating);
+        card.appendChild(link);
+
+        chat.appendChild(card);
+      });
+
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    // База знаний ИИ
+    const responses = {
+      "здравствуйте": "Добрый вечер, что вас беспокоит?",
+      "привет": "Здравствуйте! Чем могу помочь?",
+      "у меня болит голова": "Возможно у вас мигрень, повышенное или пониженное давление. Попробуйте проветрить комнату или прогуляться. Если голова всё ещё болит — проконсультируйтесь с врачом.",
+      "у меня проблемы со сном": "Попробуйте соблюдать режим сна, избегать экранов перед сном, пить травяной чай. Также полезно будет выключить свет и создать комфортную обстановку.",
+      "что делать со стрессом": "При стрессе помогают дыхательные упражнения, прогулки на свежем воздухе, медитации. Не забывайте про отдых и близких людей.",
+      "спасибо": "Рад был помочь! Обращайтесь всегда."
+    };
+
+    const healthKeywords = ["болит", "плохо", "тошнит", "устал", "голова"];
+
+    function getBotResponse(userMessage) {
+      const lower = userMessage.toLowerCase();
+
+      for (let key in responses) {
+        if (lower.includes(key)) {
+          return responses[key];
+        }
+      }
+
+      return "Извините, я пока не знаю ответа на этот вопрос. Может быть, попробуете переформулировать или задать другой?";
+    }
+
+    function shouldShowDoctorLink(userMessage) {
+      const lower = userMessage.toLowerCase();
+      return healthKeywords.some(word => lower.includes(word));
+    }
+
+    window.onload = () => {
+      addMessage("Здравствуйте", "user");
+      setTimeout(() => {
+        addMessage(responses["здравствуйте"], "bot");
+      }, 500);
+    };
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      addMessage(userText, 'user');
+
+      const botReply = getBotResponse(userText);
+
+      const doctorsForRecommendation = [
+        {
+          name: "Иванов Иван Иванович",
+          rating: "4.8 ★",
+          link: "https://example.com/ivanov" 
+        },
+        {
+          name: "Петрова Елена Сергеевна",
+          rating: "4.7 ★",
+          link: "https://example.com/petrova" 
+        },
+        {
+          name: "Смирнов Алексей Николаевич",
+          rating: "4.9 ★",
+          link: "https://example.com/smirnov" 
+        }
+      ];
+
+      setTimeout(() => {
+        if (userText.toLowerCase().includes("порекомендуй врача") || userText.toLowerCase().includes("терапевт")) {
+          addDoctors("Вот несколько квалифицированных терапевтов, к которым вы можете обратиться:", doctorsForRecommendation);
+        } else {
+          addMessage(botReply, 'bot');
+          if (shouldShowDoctorLink(userText)) {
+            addDoctors("Вы также можете записаться к врачу:", doctorsForRecommendation);
+          }
+        }
+      }, 500);
+
+      input.value = '';
+    });
+  </script>
+
+</body>
+</html>
